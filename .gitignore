@@ -1,0 +1,10 @@
+*.pyc
+__pycache__
+__pycache__/*
+dump
+test.py
+objects.py
+\.*
+!.gitignore
+master.csv
+src/jiraDump.py
