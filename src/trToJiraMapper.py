@@ -99,22 +99,21 @@ class JiraMapper:
             del s
         else:
             self.__addError('[' +id + '] - unknown test case template' )
-            
         
-        if False: 
-            out['created']=self.__getItem(trItem,'Created On')
-            out['timeestimate']=self.__getItem(trItem,'Estimate')
-            out['reporter']={'name': self.__getItem(trItem,'Created By')}
-        else:
-            description += '\n\n{quote}\n'
-            description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
-            description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
-            if self.__getItem(trItem,'Estimate'):
-                description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
-            description += '\n{quote}\n'
-    
-    
+        description += '\n\n{quote}\n'
+        description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
+        description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
+        if self.__getItem(trItem,'Estimate'):
+            description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
+        description += '\n{quote}\n'
+
         out['description'] = description
+
+        '''TODO: 
+            1. map test types - only works for jira Wro
+            2. map epics 
+        '''
+
         
         return out
     
