@@ -7,9 +7,9 @@ Created on Jun 25, 2017
 import csv
 
 class SourceReader:
-    h = dict()
-    
+       
     def __init__(self, fileName):
+        self.h = dict()
         try:
             self.csvfile = open(fileName, 'tr')
         except OSError as e:
@@ -17,13 +17,20 @@ class SourceReader:
             raise e
         else:
             self.dictReader = csv.DictReader( self.csvfile )
-            self.h = next( self.dictReader )
+            self.h = self.dictReader.fieldnames
+            
     def header(self):
         return self.h
     def nextLine(self):
         return next(self.dictReader)
+    def __iter__(self):
+        for n in self.dictReader:
+            yield n
 
-
+    def __del__(self):
+        self.csvfile=None
+        self.dictReader=None
+        self.h=None
 
 if __name__ == "__main__":
     pass

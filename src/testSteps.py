@@ -4,30 +4,14 @@ Created on Jun 23, 2017
 @author: slsm
 '''
 from _ast import Num
+import copy
 
-stepHeader={'columns':[
-    {'isStatus':False,'name':'Action','number':1},
-    {'isStatus':False,'name':'Input','number':2},
-    {'isStatus':False,'name':'Expected result','number':3},
-    {'isStatus':True,'name':'Status','number':4}
-    ],'number':0}
-'''
-stepHeader={'columns':[
-    {'isStatus':False,'name':'Given','number':1},
-    {'isStatus':False,'name':'When','number':2},
-    {'isStatus':False,'name':'Then','number':3},
-    {'isStatus':True,'name':'Status','number':4}
-    ],'number':0}
-'''
+
 
 class Step:
     '''
     classdocs
     '''
-    action=''
-    input=''
-    expectedResult=''
-    number=0
     def __init__(self, number, actionString='', inputString='', expectedResultString=''):
         '''
         Constructor
@@ -64,27 +48,36 @@ class Step:
              'value':''},
             ))
         return l
+    def __del__(self):
+        self.action = None
+        self.input = None
+        self.number = None
+        
        
     
 class TestSteps():
-    
-    steps=list()
-    header = dict()
+    stepHeader={'columns':[
+        {'isStatus':False,'name':'Action','number':1},
+        {'isStatus':False,'name':'Input','number':2},
+        {'isStatus':False,'name':'Expected result','number':3},
+        {'isStatus':True,'name':'Status','number':4}
+        ],'number':0}
+
     def __init__(self, headerAction='Action', headerInput='Input', headerExpected='Expected result'):
-        self.header = stepHeader
-        if headerAction or headerInput or headerExpected:            
+        self.steps=list()
+        self.header = dict()
+        self.header = copy.copy(TestSteps.stepHeader)
+        if headerAction or headerInput or headerExpected:
             self.header['columns'][0]['name']=headerAction
-            self.header['columns'][0]['name']=headerInput
-            self.header['columns'][0]['name']=headerExpected
+            self.header['columns'][1]['name']=headerInput
+            self.header['columns'][2]['name']=headerExpected
         
     def add(self,actionString='', inputString='', expectedResultString=''):
         self.steps.append(Step(len(self.steps)+1, actionString, inputString, expectedResultString))
     
     def clear(self):
         self.steps.clear()
-    
-    
-        
+     
     
     def asdict(self):
         d = dict()
@@ -94,7 +87,11 @@ class TestSteps():
             stepDict=s.asdict()
             d['rows'].append(dict({'columns':stepDict,'number':s.number}))
         return d
-            
+    
+    def __del__(self):
+        self.steps = None
+        self.header = None
+    
 if __name__ == "__main__":
     pass
 

@@ -6,5 +6,6 @@ test.py
 objects.py
 \.*
 !.gitignore
-master.csv
+*.csv
 src/jiraDump.py
+!example.csv

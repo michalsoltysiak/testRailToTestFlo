@@ -1,0 +1,19 @@
+﻿"ID","Title","Created By","Created On","Estimate","Forecast","Given","Goals","Mission","Priority","References","Section","Section Depth","Section Description","Section Hierarchy","Steps","Steps (Expected Result)","Steps (Step)","Suite","Suite ID","Template","Then","Type","Updated By","Updated On","When"
+"C177","Connect to services when device list is already set","Sylwia Jakubiec","8/22/2016 11:17 AM","","87s","DC is not connected","","","Critical","","Send List Of Connected Devices","1","","Acceptance Tests > Send List Of Connected Devices","1. Set device list
+Expected Result:
+ERROR_SUCCESS returned
+2. Connect
+Expected Result:
+ERROR_SUCCESS returned
+Handler connected called
+DeviceList message sent to broker","1. ERROR_SUCCESS returned
+2. ERROR_SUCCESS returned
+Handler connected called
+DeviceList message sent to broker","1. Set device list
+2. Connect","Master","S2","Test Case (Steps)","","Acceptance","Bernd Behler","8/22/2016 6:53 PM",""
+"C226","Verify SSL/TLS connection to the broker","Sylwia Jakubiec","8/24/2016 2:39 PM","","","","List of accepted ciphers suites should not contain weak ciphers: RC4, DES, 3DES
+TLS v1.2 should be used","Verify:
+- list of accepted cipher suites
+- SSL/TLS version","Medium","","Connect to IoT Broker","1","","Acceptance Tests > Connect to IoT Broker","","","","Master","S2","Exploratory Session","","Security","Sylwia Jakubiec","8/24/2016 2:45 PM",""
+"C209","Try to connect with invalid gataway ID","Szymon Sobocinski","8/23/2016 4:08 PM","","104s","DC is not connected
+","","","Critical","","Validation of connect parameters","2","","Acceptance Tests > Connect to IoT Broker > Validation of connect parameters","","","","Master","S2","Test Case (Text)","DC::connect() returns ERROR_INVALID. Connection is aborted.","Acceptance","Szymon Sobocinski","8/23/2016 4:10 PM","DC::connect() is called with invalid gateway ID, i.e. containing other characters than lowercase alphanumerical characters or dash ('-')."
