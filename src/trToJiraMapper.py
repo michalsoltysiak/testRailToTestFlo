@@ -7,26 +7,98 @@ from sre_compile import isstring
 import datetime
 import re
 from testSteps import TestSteps
+from jira import JIRA
+from jira.exceptions import JIRAError
+import string
+from pyatspi import component
+from inspect import istraceback
 
 
 
 
 class JiraMapper:
     prioMapper={'Medium':'Normal', 'Critical':'Critical', 'High':'High', 'Low':'Low'}
+    testTypes=['None', 'Acceptance', 'Smoke', 'Regression', 'Performance', 'Development', 'Security', 'Installation', 'Destructive']
+    testLevels=['None', 'Unit', 'Integration', 'Component Interface', 'System', 'Operational Acceptance']
         
-    def __init__(self, projectKey, customerFieldDict):
+    
+    def __init__(self, jiraObj, projectKey):
+        '''
+        :param jiraObj - initiated (created) JIRA object
+        :param projectKey - string which identify project key you want to work with
+        :param   
+        '''
         self.errLog=''
-        if isinstance(customerFieldDict, dict):
-            self.cfDict = customerFieldDict
+        self.projectKey = ''
+        if isinstance(jiraObj, JIRA):
+            self.jira = jiraObj
         else:
-            self.cfDict = dict()
-            print('Warning: are you sure you dont\'n  have custom fileds?' )
-             
+            raise JIRAError('jiraObj is not instance of JIRA class')
+        
+        
+        self.cfDict = self.__customFiledsMapping()
+                     
         if isstring(projectKey):
-            self.projectKey = projectKey
-        else:
-            self.projectKey = 'WRONG-KEY'
-            print('projectKey must be a string')
+            for p in self.jira.projects():
+                if p.key == projectKey:
+                    self.projectKey = projectKey
+                    break
+            if not self.projectKey:
+                raise JIRAError(projectKey+ ' is not found or user has no access') 
+        self.components = list()
+        for c in self.jira.project_components(self.projectKey):
+            self.components.append( c.name )
+        print( 'Components in project: ', self.components)
+
+            
+    def __customFiledsMapping(self):
+        cfMap = dict()
+        for f in self.jira.fields():        
+            if f['id'].find('customfield_') == 0: #id fields starts with 'customfield_'
+                cfMap[f['name']]=f['id']
+        return cfMap
+        
+    def __checkAndCreateComponents(self, issue, components):
+        if components:
+            if isstring(components):
+                c = list()
+                c.append(components)
+            else:
+                c = components
+            if type(c) is list:
+                for component in c:
+                    component.strip()
+                    component = '_'.join(component.split()) #replace spaces with _
+                    
+                    if not component.lower() in ( known.lower() for known in self.components ):
+                        self.jira.create_component(component,self.projectKey)
+                        self.components.append( component )                        
+                        print( 'Created component: '+ component )
+                    
+                    issue.fields.components.append({ 'name': component})
+                issue.update(fields={'components':issue.fields.components})
+            else:
+                print( 'components argument must be sting or list of strings')
+    
+    def __checkAndUpdateLabels(self,issue,labels):
+        if labels:
+            if isstring(labels):
+                l = list()
+                l.append(labels)
+            else:
+                l = labels
+            
+            if type(l) is list:
+                for label in l:
+                    label.strip()   #remove leading and ending spaces
+                    label = '_'.join(label.split()) #replace spaces with _
+                            
+                    if not label.lower() in ( issueLabel.lower() for issueLabel in issue.fields.labels ):
+                        issue.fields.labels.append(label.lower())
+                        issue.update(fields={'labels': issue.fields.labels})
+            else:
+                print( __name__ + 'labels must be string or list of strings')
+           
 
     def __addError(self, msg):
         if self.errLog:
@@ -43,7 +115,7 @@ class JiraMapper:
             self.__addError( 'Key : "' + trItemName + '" not found in input line\n' )
             
 
-    def mapLine(self, trItem ):
+    def __getIssueFields(self, trItem ):
         '''returns dictionary as jira item
         :param trItem - dictiorany object returned by sourceReader '''
         out = dict()
@@ -82,7 +154,7 @@ class JiraMapper:
                 if k or l:
                     s.add(k, '', l)
             out[self.cfDict['Steps']] = s.asdict()
-            del s
+            
                 
         elif template == 'Test Case (Text)':
             ''' case 2 - Given/When/Then test case  - testrail template:  Test Case (Text)'''
@@ -90,13 +162,13 @@ class JiraMapper:
             s=TestSteps('Given', 'When','Then')
             s.add(given, when, then)
             out[self.cfDict['Steps']] = s.asdict()
-            del s
+            
         elif template == 'Exploratory Session':
             ''' case 3 - Given/When/Then test case  - testrail template:  Exploratory Session'''
             s=TestSteps('Goal', 'Mission','Free text')
             s.add(goal, mission, '')
             out[self.cfDict['Steps']] = s.asdict()
-            del s
+            
         else:
             self.__addError('[' +id + '] - unknown test case template' )
         
@@ -108,21 +180,51 @@ class JiraMapper:
         description += '\n{quote}\n'
 
         out['description'] = description
-
+        
+        testType = self.__getItem(trItem,'Type')
+        sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
+        shList = re.split(' > ',sectionHierarchy )
+        #print( 'type: ', testType, '\nsection: ', sectionHierarchy, '\nsplit: ',re.split(' > ',sectionHierarchy))
         '''TODO: 
             1. map test types - only works for jira Wro
             2. map epics 
         '''
-
-        
         return out
     
+    def createIssue(self, csvLineDict, components=None, labels=None ):
+        
+        issueDict = self.__getIssueFields(csvLineDict)
+        sectionHierarchy = self.__getItem(csvLineDict, 'Section Hierarchy')
+        shList = re.split(' > ',sectionHierarchy ) #list of section headers
+        
+        
+        
+        
+        
+                
+        #create issue in Jira
+        issue = self.jira.create_issue(fields=issueDict)
+        
+        #append (to already created component) default labels
+        
+        
+        
+        self.__checkAndUpdateLabels(issue, labels)
+        self.__checkAndCreateComponents(issue, components)
+        
+        
+                    
+        #issue.fields.labels.append(u'new_text')
+        #issue.update(fields={"labels": issue.fields.labels})        
+        
+        return issueDict
+      
+       
+    
 if __name__ == "__main__":
-    cf= dict({'Fix Build': 'customfield_11699', 'Priority Value': 'customfield_12095', 'Werksauftrag': 'customfield_10060', 'EC Project': 'customfield_12090', 'Unterschiede zum Vorgänger': 'customfield_10062', 'Steps to Reproduce': 'customfield_12092', 'Ideen-Ticket': 'customfield_10391', 'Flagged': 'customfield_11190', 'Customer Journey Phase': 'customfield_11991', 'TP Progress': 'customfield_11499', 'Epic Colour': 'customfield_10695', 'Date of First Response': 'customfield_10031', 'Affected Build': 'customfield_11698', 'Wiki Link': 'customfield_10190', 'Actual Start': 'customfield_11501', 'So that': 'customfield_12000', 'Requirement': 'customfield_11694', 'CF link to Test Case Template': 'customfield_11790', 'Rough estimate (weeks):': 'customfield_12097', 'DS Zip File Version': 'customfield_10070', 'Dependencies': 'customfield_11604', 'MS-Project ID': 'customfield_11514', 'Kontext': 'customfield_11091', 'Zelle': 'customfield_11090', 'Participants': 'customfield_11900', 'Project': 'customfield_11600', 'I want to': 'customfield_11997', 'State': 'customfield_11791', 'Risks': 'customfield_11908', 'Gemeldet von': 'customfield_10081', 'Success Factors': 'customfield_11995', 'Baseline Start': 'customfield_11508', 'Actual End': 'customfield_11502', 'As a user': 'customfield_11996', 'Original estmation': 'customfield_11700', 'Cluster/Server': 'customfield_11092', 'Release Version History': 'customfield_10794', 'Automated': 'customfield_11701', 'Expected Result': 'customfield_12091', 'Watchers': 'customfield_11603', 'Requirement Level': 'customfield_11515', 'Aktivierungszeitpunkt': 'customfield_11093', 'Baseline Effort': 'customfield_11511', 'TC managers': 'customfield_11599', 'Gantt Options': 'customfield_11507', 'Referenznummer': 'customfield_10082', 'TCT Change Alert': 'customfield_11492', 'TC Status': 'customfield_11498', 'Remove Test Cases': 'customfield_11695', 'As a': 'customfield_11999', 'Status Comment': 'customfield_11909', 'TC Group': 'customfield_11491', 'Management Info': 'customfield_10083', 'Accountable': 'customfield_11903', 'Sprint': 'customfield_10690', 'Latest Start': 'customfield_11505', 'TCT managers': 'customfield_11598', 'Aha! Reference': 'customfield_11390', 'Acceptance Criteria': 'customfield_11693', 'Position': 'customfield_11901', 'Product Version': 'customfield_12096', 'Epic Name': 'customfield_10694', 'Defects on TP': 'customfield_11496', 'Story Points': 'customfield_10792', 'Defects': 'customfield_11495', 'Phase': 'customfield_12093', 'Epic/Thema': 'customfield_10791', 'Need Statement': 'customfield_11993', 'Epic Link': 'customfield_10691', 'PMR': 'customfield_11094', 'Date of Baselining': 'customfield_11510', 'Due date': 'customfield_12094', 'Testebene': 'customfield_11697', 'Markiert': 'customfield_11998', 'Precondition': 'customfield_11994', 'Visda-Ticket': 'customfield_10390', 'Gantt Chart': 'customfield_11513', 'Time in Status': 'customfield_10590', 'Planned End': 'customfield_11504', 'Plan Erledigungsdatum': 'customfield_10010', 'Latest End': 'customfield_11506', 'Change': 'customfield_11095', 'Epic Status': 'customfield_10693', 'Time': 'customfield_11905', 'Testart': 'customfield_11696', 'Cost': 'customfield_11906', 'Planned Start': 'customfield_11503', 'Business Value': 'customfield_11602', 'TC Template': 'customfield_11493', 'Rank (Obsolete)': 'customfield_10692', 'Complexity': 'customfield_11605', 'Persona': 'customfield_11992', 'Velocity %': 'customfield_11512', 'Steps': 'customfield_11497', 'System': 'customfield_10000', 'Pre-conditions': 'customfield_11691', 'issueFunction': 'customfield_10490', 'TP Status': 'customfield_11494', 'Expected': 'customfield_11904', 'Projekt ID': 'customfield_10061', 'Rank': 'customfield_11290', 'Estrella Enviroment': 'customfield_11601', 'Quality': 'customfield_11907', 'Resubmission': 'customfield_11902', 'Baseline End': 'customfield_11509', 'Geschäftswert': 'customfield_10793', 'Stakeholder': 'customfield_11990'})
-    m = JiraMapper('SBREST',cf)
-    d = m.mapLine({'When': '', 'Template': 'Test Case (Text)', 'Created By': 'Klaus Wenger', 'Steps (Step)': '', 'Steps': '', 'Suite ID': 'S2', 'Section Hierarchy': 'Unit Tests > Protocol Tests', 'Title': 'Encode Disconnected Message', 'Section': 'Protocol Tests', 'Section Depth': '1', 'References': '', 'Updated By': 'Sylwia Jakubiec', 'Created On': '6/24/2016 3:48 PM', 'Goals': '', 'Then': '', 'Steps (Expected Result)': '', 'Section Description': 'Tests encoding and decoding protocol messages - protobuf + base64.', 'Estimate': '', 'Priority': 'Medium', 'Mission': '', 'Given': '', '\ufeff"ID"': 'C92', 'Updated On': '8/16/2016 2:28 PM', 'Type': 'Other', 'Forecast': '', 'Suite': 'Master'})
-    #d = m.mapLine({'Estimate': '', 'Created By': 'Szymon Sobocinski', 'When': '', 'Created On': '4/25/2017 6:07 PM', 'Steps (Step)': '1. Call setDataValue for the registered data with any value.\n2. Call setDataValue for the registered data again with value that does not exceed delta.', 'Type': 'Acceptance', 'Updated By': 'Szymon Sobocinski', 'Suite': 'Master', 'Mission': '', 'Title': 'Trigger mode 2 missing "type" field', 'Section Description': '', 'Then': '', 'Forecast': '', 'Section': 'Inconsistent trigger mode definition handling', 'Section Depth': '2', '\ufeff"ID"': 'C2014', 'Suite ID': 'S2', 'Goals': '', 'Given': 'Services simulator is set to respond to DeviceList message with UpdateDataDefinitionsRequest containing at least one data with definition where "sendTrigger/mode" field is set to 2, "sendTrigger/delta", and "endianness" fields are valid, but "type" field is missing.\n[C165] DC instance is connected\n[C182] Data definitions are received', 'Section Hierarchy': 'Acceptance Tests > Trigger modes > Inconsistent trigger mode definition handling', 'Steps (Expected Result)': '1. Function returns ERROR_SUCCESS\nDataChanged message is sent immedietly and carries provided value\n2. Function returns ERROR_SUCCESS\nDataChanged message is sent immedietly and carries provided value', 'Updated On': '4/25/2017 6:18 PM', 'Steps': '1. Call setDataValue for the registered data with any value.\nExpected Result:\nFunction returns ERROR_SUCCESS\nDataChanged message is sent immedietly and carries provided value\n2. Call setDataValue for the registered data again with value that does not exceed delta.\nExpected Result:\nFunction returns ERROR_SUCCESS\nDataChanged message is sent immedietly and carries provided value', 'References': '', 'Template': 'Test Case (Steps)', 'Priority': 'High'})
-    #d = m.mapLine({'Created On': '8/17/2016 4:08 PM', 'Forecast': '', 'Title': 'Verify SSL/TLS connection to the management service', 'Section Depth': '1', 'Template': 'Exploratory Session', 'Section Description': '', 'Steps (Step)': '', '\ufeff"ID"': 'C145', 'References': '', 'Priority': 'Medium', 'Goals': 'List of accepted ciphers suites should not contain weak ciphers: RC4, DES, 3DES\nTLS v1.2 should be used', 'Type': 'Other', 'Section': 'Retrieve Connection Information from Server', 'Then': '', 'Section Hierarchy': 'Acceptance Tests > Retrieve Connection Information from Server', 'Updated On': '8/30/2016 9:52 AM', 'Mission': 'Verify:\n- list of cipher suites advertised by DCe in TLS/SSL connection establishment procedure\n- SSL/TLS version', 'Suite': 'Master', 'Given': '', 'Steps (Expected Result)': '', 'Updated By': 'Szymon Sobocinski', 'Steps': '', 'When': '', 'Estimate': '', 'Suite ID': 'S2', 'Created By': 'Sylwia Jakubiec'})
-    print( d)
-    print('errors: ',m.errLog)
-
+    def __checkAndUpdateLabel(label):
+                
+        return label
+    
+    print('a')
+    print( __checkAndUpdateLabel(' dfa ffa    fda ') )

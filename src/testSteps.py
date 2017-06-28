@@ -55,7 +55,7 @@ class Step:
         
        
     
-class TestSteps():
+class TestSteps:
     stepHeader={'columns':[
         {'isStatus':False,'name':'Action','number':1},
         {'isStatus':False,'name':'Input','number':2},

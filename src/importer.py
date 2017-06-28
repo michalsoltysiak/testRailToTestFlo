@@ -57,14 +57,32 @@ parsedArgs = dict()
 if __name__ == "__main__":
     parsedArgs = parseCommandLine(sys.argv[1:])
  
-if True:
+if False:
     jiraWro = JIRA('http://s0013w1602.viessmann.com:8080',basic_auth=(parsedArgs['user'], parsedArgs['password']))
     
     jira = jiraWro
-    issueDict ={'project':{'key':'TDC'},'priority': {'name': 'Critical'}, 'issuetype': {'name': 'Test Case Template'},'summary': 'TC','components': [{ 'name': 'Documentation'}]}
-    #print( jiraDump.dumpIssue(jira, 'TDC-66'))
-    print( jira.fields())
-    #jira.create_issue(fields=issueDict)
+    cfMap = customFiledsMapping(jira )
+    issueDict ={'project':{'key':'TDC'},'priority': {'name': 'Critical'}, 'issuetype': {'name': 'Test Case Template'},'summary': 'TC','components': [{ 'name': 'Documentation'}],
+                cfMap['Test Type']:[{'value':'Acceptance'} ], cfMap['Test Level']:{'value':'Unit'}, cfMap['Epic Link']:'TDC-562',  
+                }
+    print( jiraDump.dumpIssue(jira, 'TDC-555'))
+    issue = jira.issue('TDC-555')
+    issue.fields.labels.append(u'new_text')
+
+    #print( cfMap)
+    #issue = jira.create_issue(fields=issueDict)
+    #issue.update(labels=['imported'])
+    #issue.update(notify=False, description='Quiet summary update.')
+    #jira.create_component('Trigger modes', 'TDC')
+if True:
+    jiraTest = JIRA('https://testjira.viessmann.com',basic_auth=(parsedArgs['user'], parsedArgs['password']))
+    
+    
+    
+    m=JiraMapper(jiraTest, 'SBREST')
+    s = SourceReader(parsedArgs['inputFile'])  
+    print( m.createIssue(s.nextLine(), ['Trigger_modes','DCe'], 'imported'  ) )
+    
 
 if False:
     jiraTest = JIRA('https://testjira.viessmann.com',basic_auth=(parsedArgs['user'], parsedArgs['password']))
