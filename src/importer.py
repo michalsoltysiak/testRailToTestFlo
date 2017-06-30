@@ -35,13 +35,13 @@ def customFiledsMapping( jiraObject ):
 def parseCommandLine(argv):
     dictArgs=dict({'user':'','password':'','key':'','inputFile':''})
     try:
-        opts, args = getopt.getopt(argv,"hu:p:k:i:",["user=","pass=","key=","ifile="])
+        opts, args = getopt.getopt(argv,"hu:p:k:i:s:",["user=","pass=","key=","ifile=","server="])
     except getopt.GetoptError:
-        print( 'main.py -u <jira_user> -p <jira_password> -k <project_key> -i <input_file>' )
+        print( 'main.py -u <jira_user> -p <jira_password> -k <project_key> -i <input_file> -s <server_url>' )
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print( 'main.py -i -u <user> -p <password> -k <project_key> -i <input_file>' )
+            print( 'main.py -i -u <user> -p <password> -k <project_key> -i <input_file> -s <server_url>' )
             sys.exit()
         elif opt in ("-u", "--user"):
             dictArgs['user'] = arg
@@ -51,11 +51,32 @@ def parseCommandLine(argv):
             dictArgs['key'] = arg
         elif opt in ("-i", "--ifile"):
             dictArgs['inputFile'] = arg
+        elif opt in ("-s", "--server"):
+            dictArgs['server'] = arg
     return dictArgs
 
 parsedArgs = dict()    
 if __name__ == "__main__":
     parsedArgs = parseCommandLine(sys.argv[1:])
+ 
+ 
+ 
+if True:
+    jiraTest = JIRA(parsedArgs['server'],basic_auth=(parsedArgs['user'], parsedArgs['password']))
+    
+    
+    
+    m=JiraMapper(jiraTest, parsedArgs['key'])
+    s = SourceReader(parsedArgs['inputFile'])
+    print( m.cfDict )  
+    
+    
+    
+    for csvLine in s:
+        print( m.createIssue(csvLine, ['DCe'], 'imported'  ) )
+
+    
+     
  
 if False:
     jiraWro = JIRA('http://s0013w1602.viessmann.com:8080',basic_auth=(parsedArgs['user'], parsedArgs['password']))
@@ -74,15 +95,7 @@ if False:
     #issue.update(labels=['imported'])
     #issue.update(notify=False, description='Quiet summary update.')
     #jira.create_component('Trigger modes', 'TDC')
-if True:
-    jiraTest = JIRA('https://testjira.viessmann.com',basic_auth=(parsedArgs['user'], parsedArgs['password']))
-    
-    
-    
-    m=JiraMapper(jiraTest, 'SBREST')
-    s = SourceReader(parsedArgs['inputFile'])  
-    print( m.createIssue(s.nextLine(), ['Trigger_modes','DCe'], 'imported'  ) )
-    
+
 
 if False:
     jiraTest = JIRA('https://testjira.viessmann.com',basic_auth=(parsedArgs['user'], parsedArgs['password']))

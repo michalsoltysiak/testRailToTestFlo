@@ -12,13 +12,15 @@ from jira.exceptions import JIRAError
 import string
 from pyatspi import component
 from inspect import istraceback
+from shlex import shlex
+from lxml.html._diffcommand import description
 
 
 
 
 class JiraMapper:
     prioMapper={'Medium':'Normal', 'Critical':'Critical', 'High':'High', 'Low':'Low'}
-    testTypes=['None', 'Acceptance', 'Smoke', 'Regression', 'Performance', 'Development', 'Security', 'Installation', 'Destructive']
+    testTypes={'Other':'None', 'Acceptance':'Acceptance', 'Smoke':'Smoke', 'Regression':'Regression', 'Performance':'Performance', 'Development':'Development', 'Security':'Security', 'Installation':'Installation', 'Destructive':'Destructive'}
     testLevels=['None', 'Unit', 'Integration', 'Component Interface', 'System', 'Operational Acceptance']
         
     
@@ -49,6 +51,12 @@ class JiraMapper:
         for c in self.jira.project_components(self.projectKey):
             self.components.append( c.name )
         print( 'Components in project: ', self.components)
+        self.epics=list()
+        jqlString= 'project = ' + self.projectKey + ' and issueType = Epic'
+        epics = self.jira.search_issues(jqlString)
+        for e in epics:
+            self.epics.append({'key':e.key, 'summary':e.fields.summary, 'Epic Name':getattr(e.fields, self.cfDict['Epic Name'])})
+        
 
             
     def __customFiledsMapping(self):
@@ -99,6 +107,27 @@ class JiraMapper:
             else:
                 print( __name__ + 'labels must be string or list of strings')
            
+#-------------------------------------------------------------------
+    def __checkAndUpdateEpics(self, name, summary='', description=''):
+        '''returns Epic's id so can be added as linked issue'''
+        if summary=='':
+            summary = name
+        for epic in self.epics:
+            if name == epic['Epic Name']:                
+                return epic['key']
+        
+        issueDict=dict()
+        issueDict['issuetype'] = {'name':'Epic'}
+        issueDict['project'] = {'key': self.projectKey}
+        issueDict['summary'] = summary
+        issueDict[self.cfDict['Epic Name']] = name
+        issueDict['description'] = description
+        
+        issue = self.jira.create_issue(fields=issueDict)
+        self.epics.append({'key':issue.key, 'summary':issue.fields.summary, 'Epic Name':getattr(issue.fields, self.cfDict['Epic Name'])})
+        print( 'Created epic: ', {'key':issue.key, 'summary':issue.fields.summary, 'Epic Name':getattr(issue.fields, self.cfDict['Epic Name'])})
+        return issue.key
+    
 
     def __addError(self, msg):
         if self.errLog:
@@ -154,7 +183,7 @@ class JiraMapper:
                 if k or l:
                     s.add(k, '', l)
             out[self.cfDict['Steps']] = s.asdict()
-            
+            #out[self.cfDict['Automated']] = dict({'value':'Yes'})
                 
         elif template == 'Test Case (Text)':
             ''' case 2 - Given/When/Then test case  - testrail template:  Test Case (Text)'''
@@ -162,12 +191,13 @@ class JiraMapper:
             s=TestSteps('Given', 'When','Then')
             s.add(given, when, then)
             out[self.cfDict['Steps']] = s.asdict()
-            
+            #out[self.cfDict['Automated']] = dict({'value':'Yes'})
         elif template == 'Exploratory Session':
             ''' case 3 - Given/When/Then test case  - testrail template:  Exploratory Session'''
             s=TestSteps('Goal', 'Mission','Free text')
             s.add(goal, mission, '')
             out[self.cfDict['Steps']] = s.asdict()
+            #out[self.cfDict['Automated']] = dict({'value':'No'})
             
         else:
             self.__addError('[' +id + '] - unknown test case template' )
@@ -184,11 +214,30 @@ class JiraMapper:
         testType = self.__getItem(trItem,'Type')
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ',sectionHierarchy )
+        
+        '''DCE specific behavior'''
+        out[self.cfDict['Test Type']] = list()
+        if not testType == 'Other':
+            
+            out[self.cfDict['Test Type']].append({'value':self.testTypes[testType]})
+        else:
+            if shList[0] == 'Acceptance Tests':
+                out[self.cfDict['Test Type']].append({'value':self.testTypes['Acceptance']})
+                         
+        if shList[0] == 'Acceptance Tests':
+            out[self.cfDict['Test Level']] = dict({'value':'Component Interface'})
+        elif shList[0] == 'Unit Tests':
+            out[self.cfDict['Test Level']] = dict({'value':'Unit'})
+        else:
+            out[self.cfDict['Test Level']] = dict({'value':'None'})
+         
+        
         #print( 'type: ', testType, '\nsection: ', sectionHierarchy, '\nsplit: ',re.split(' > ',sectionHierarchy))
         '''TODO: 
-            1. map test types - only works for jira Wro
-            2. map epics 
+            
+            map epics 
         '''
+        
         return out
     
     def createIssue(self, csvLineDict, components=None, labels=None ):
@@ -196,21 +245,19 @@ class JiraMapper:
         issueDict = self.__getIssueFields(csvLineDict)
         sectionHierarchy = self.__getItem(csvLineDict, 'Section Hierarchy')
         shList = re.split(' > ',sectionHierarchy ) #list of section headers
+        epicName='_'.join(shList[1:])
         
-        
-        
-        
-        
-                
+        print(epicName)
         #create issue in Jira
+        epicKey = self.__checkAndUpdateEpics(name=epicName, summary= sectionHierarchy, description= self.__getItem(csvLineDict,'Section Description'))
+        issueDict[self.cfDict['Epic Link']]= epicKey
+        
         issue = self.jira.create_issue(fields=issueDict)
         
         #append (to already created component) default labels
-        
-        
-        
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
+        
         
         
                     
@@ -224,7 +271,7 @@ class JiraMapper:
 if __name__ == "__main__":
     def __checkAndUpdateLabel(label):
                 
-        return label
+        return
     
     print('a')
     print( __checkAndUpdateLabel(' dfa ffa    fda ') )
