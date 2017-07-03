@@ -31,7 +31,6 @@ def customFiledsMapping( jiraObject ):
         
     return cfMap 
 
-
 def parseCommandLine(argv):
     dictArgs=dict({'user':'','password':'','key':'','inputFile':''})
     try:
