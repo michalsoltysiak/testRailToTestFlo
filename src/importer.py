@@ -8,7 +8,7 @@ import sys, getopt
 
 
 import json
-import jiraDump
+
 
 from trToJiraMapper import JiraMapper
 from sourceReader import SourceReader
@@ -68,9 +68,7 @@ if True:
     
     m=JiraMapper(jiraTest, parsedArgs['key'])
     s = SourceReader(parsedArgs['inputFile'])
-    print( m.cfDict )  
-    
-    
+    #print( m.cfDict )  
     
     for csvLine in s:
         print( m.createIssue(csvLine, ['DCe'], 'imported'  ) )

@@ -10,10 +10,10 @@ from testSteps import TestSteps
 from jira import JIRA
 from jira.exceptions import JIRAError
 import string
-from pyatspi import component
+
 from inspect import istraceback
 from shlex import shlex
-from lxml.html._diffcommand import description
+
 
 
 
@@ -106,7 +106,20 @@ class JiraMapper:
                         issue.update(fields={'labels': issue.fields.labels})
             else:
                 print( __name__ + 'labels must be string or list of strings')
-           
+    
+    def __checkAndUpdateGroups(self,issue,group, subgroup=None):
+        if isstring(group):
+            group.strip()   #remove leading and ending spaces
+            group = '_'.join(group.split()) #replace spaces with _
+            groups = getattr( issue.fields, self.cfDict['Test Case Group'] )
+            
+            if groups == None:
+                groups = list()
+            if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :
+                groups.append(group.lower())
+                issue.update(fields={self.cfDict['Test Case Group']: groups})
+            
+            
 #-------------------------------------------------------------------
     def __checkAndUpdateEpics(self, name, summary='', description=''):
         '''returns Epic's id so can be added as linked issue'''
@@ -152,7 +165,8 @@ class JiraMapper:
         
         
         
-        id = str(self.__getItem(trItem,'\ufeff"ID"'))
+        #id = str(self.__getItem(trItem,'\ufeff"ID"'))
+        id = str(self.__getItem(trItem,'ID'))
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
@@ -197,23 +211,21 @@ class JiraMapper:
             s=TestSteps('Goal', 'Mission','Free text')
             s.add(goal, mission, '')
             out[self.cfDict['Steps']] = s.asdict()
+            # commented out - does not work - Field 'customerfield_11792' cannot be set. It is not on the appropriate screen, or unknown."
             #out[self.cfDict['Automated']] = dict({'value':'No'})
             
         else:
             self.__addError('[' +id + '] - unknown test case template' )
         
-        description += '\n\n{quote}\n'
-        description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
-        description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
-        if self.__getItem(trItem,'Estimate'):
-            description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
-        description += '\n{quote}\n'
-
-        out['description'] = description
+        
+        
         
         testType = self.__getItem(trItem,'Type')
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ',sectionHierarchy )
+        
+        for sh, sectionText in zip( shList[1:], list(['Section: ','Sub-section: ','Sub-sub-section: ']) ):
+            description += sectionText + sh + '\n'
         
         '''DCE specific behavior'''
         out[self.cfDict['Test Type']] = list()
@@ -230,8 +242,16 @@ class JiraMapper:
             out[self.cfDict['Test Level']] = dict({'value':'Unit'})
         else:
             out[self.cfDict['Test Level']] = dict({'value':'None'})
+                
+        description += '\n\n{quote}\n'
+        description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
+        description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
+        if self.__getItem(trItem,'Estimate'):
+            description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
+        description += '\n{quote}\n'
+
          
-        
+        out['description'] = description
         #print( 'type: ', testType, '\nsection: ', sectionHierarchy, '\nsplit: ',re.split(' > ',sectionHierarchy))
         '''TODO: 
             
@@ -250,6 +270,7 @@ class JiraMapper:
         print(epicName)
         #create issue in Jira
         epicKey = self.__checkAndUpdateEpics(name=epicName, summary= sectionHierarchy, description= self.__getItem(csvLineDict,'Section Description'))
+        
         issueDict[self.cfDict['Epic Link']]= epicKey
         
         issue = self.jira.create_issue(fields=issueDict)
@@ -257,8 +278,9 @@ class JiraMapper:
         #append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
+        #self.__checkAndUpdateGroups( issue, shList[1] )
         
-        
+        #issue.update( fields={self.cfDict['Automated']: dict({'value':'No'}) })
         
                     
         #issue.fields.labels.append(u'new_text')
