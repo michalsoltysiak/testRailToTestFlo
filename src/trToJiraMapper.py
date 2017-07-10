@@ -59,7 +59,16 @@ class JiraMapper:
         for e in epics:
             self.epics.append({'key':e.key, 'summary':e.fields.summary, 'Epic Name':getattr(e.fields, self.cfDict['Epic Name'])})
         
-
+    def __labelCompatybile(self, s):
+        ''' returns sting in jira label-compatybile maneer - no spaces, only alphanum chars'''
+        if isstring(s):
+            s.strip()
+            s.strip()   #remove leading and ending spaces
+            s = '_'.join(s.split()) #replace spaces with _
+            s = re.sub('[^0-9a-zA-Z_]+', '_', s) # replace all non alphanum chars with _
+            return s 
+        else:
+            return 'None'
             
     def __customFiledsMapping(self):
         
@@ -118,18 +127,28 @@ class JiraMapper:
             else:
                 print( __name__ + 'labels must be string or list of strings')
     
+
+            
+    
     def __checkAndUpdateGroups(self,issue,group, subgroup=None):
         if isstring(group):
-            group.strip()   #remove leading and ending spaces
-            group = '_'.join(group.split()) #replace spaces with _
+            group = self.__labelCompatybile(group)
+
             groups = getattr( issue.fields, self.cfDict['Test Case Group'] )
             
             if groups == None:
                 groups = list()
             if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :                
-                issue.add_field_value('customfield_13293',group.lower() )
-                
+                issue.add_field_value( self.cfDict['Test Case Group'], group.lower() )
+        
+        if not subgroup == None and isstring(subgroup):
+            subgroup = self.__labelCompatybile(subgroup)
+            subgroups = getattr( issue.fields, self.cfDict['Test Case Subgroup'] )
             
+            if subgroups == None:
+                subgroups = list()
+            if not subgroup.lower() in ( issueSubgroup.lower() for issueSubgroup in subgroups ) :                
+                issue.add_field_value( self.cfDict['Test Case Subgroup'], subgroup.lower() )           
             
 #-------------------------------------------------------------------
     def __checkAndUpdateEpics(self, name, summary='', description=''):
@@ -237,7 +256,7 @@ class JiraMapper:
         
         for sh, sectionText in zip( shList[1:], list(['Section: ','Sub-section: ','Sub-sub-section: ']) ):
             description += sectionText + sh + '\n'
-        
+                
         '''DCE specific behavior'''
         out[self.cfDict['Test Type']] = list()
         if not testType == 'Other':
@@ -289,7 +308,12 @@ class JiraMapper:
         #append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
-        self.__checkAndUpdateGroups( issue, shList[1] )
+        if len(shList)>2:
+            subgroup = shList[2]
+        else:
+            subgroup = None
+            
+        self.__checkAndUpdateGroups( issue, shList[1], subgroup )
         
         
         return issueDict

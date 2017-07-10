@@ -63,7 +63,9 @@ if __name__ == "__main__":
  
 if True:
     jiraTest = JIRA(parsedArgs['server'],basic_auth=(parsedArgs['user'], parsedArgs['password']))
-    
+
+    out = jiraTest.createmeta(projectKeys=parsedArgs['key'], issuetypeNames=['Test Case Template','Epic'], expand='projects.issuetypes.fields')
+#    p= out['projects'][0]['issuetypes'][0]['fields']
     
     
     m=JiraMapper(jiraTest, parsedArgs['key'])
