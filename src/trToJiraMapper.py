@@ -126,8 +126,7 @@ class JiraMapper:
             
             if groups == None:
                 groups = list()
-            if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :
-                
+            if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :                
                 issue.add_field_value('customfield_13293',group.lower() )
                 
             
