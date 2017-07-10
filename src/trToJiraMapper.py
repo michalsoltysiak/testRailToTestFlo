@@ -10,9 +10,10 @@ from testSteps import TestSteps
 from jira import JIRA
 from jira.exceptions import JIRAError
 import string
-
+import json
 from inspect import istraceback
 from shlex import shlex
+from jira.resources import IssueType
 
 
 
@@ -38,7 +39,7 @@ class JiraMapper:
             raise JIRAError('jiraObj is not instance of JIRA class')
         
         
-        self.cfDict = self.__customFiledsMapping()
+        
                      
         if isstring(projectKey):
             for p in self.jira.projects():
@@ -46,7 +47,8 @@ class JiraMapper:
                     self.projectKey = projectKey
                     break
             if not self.projectKey:
-                raise JIRAError(projectKey+ ' is not found or user has no access') 
+                raise JIRAError(projectKey+ ' is not found or user has no access')
+        self.cfDict = self.__customFiledsMapping() 
         self.components = list()
         for c in self.jira.project_components(self.projectKey):
             self.components.append( c.name )
@@ -60,10 +62,19 @@ class JiraMapper:
 
             
     def __customFiledsMapping(self):
+        
         cfMap = dict()
-        for f in self.jira.fields():        
-            if f['id'].find('customfield_') == 0: #id fields starts with 'customfield_'
-                cfMap[f['name']]=f['id']
+        meta = self.jira.createmeta( projectKeys = self.projectKey, issuetypeNames=['Test Case Template','Epic', 'Test Case', 'Test Plan'], expand='projects.issuetypes.fields')
+        issueTypes = meta['projects'][0]['issuetypes']
+        for issueType in issueTypes:
+            fields = dict()
+            fields = issueType['fields']
+            for key in fields.keys():
+                if key.find('customfield_') == 0:
+                    if key in cfMap.keys():
+                        print( 'Warning - %s is has multiple definitions in your jira' % key )
+                    cfMap[fields[key]['name']] = key
+                    
         return cfMap
         
     def __checkAndCreateComponents(self, issue, components):
@@ -116,8 +127,9 @@ class JiraMapper:
             if groups == None:
                 groups = list()
             if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :
-                groups.append(group.lower())
-                issue.update(fields={self.cfDict['Test Case Group']: groups})
+                
+                issue.add_field_value('customfield_13293',group.lower() )
+                
             
             
 #-------------------------------------------------------------------
@@ -278,13 +290,8 @@ class JiraMapper:
         #append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
-        #self.__checkAndUpdateGroups( issue, shList[1] )
+        self.__checkAndUpdateGroups( issue, shList[1] )
         
-        #issue.update( fields={self.cfDict['Automated']: dict({'value':'No'}) })
-        
-                    
-        #issue.fields.labels.append(u'new_text')
-        #issue.update(fields={"labels": issue.fields.labels})        
         
         return issueDict
       
