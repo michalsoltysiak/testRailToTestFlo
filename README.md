@@ -32,7 +32,7 @@ optional arguments:
                         space delimited list of components to be assigned to
                         imported issues
   -e                    add if you want to enable automatic creation of epics
-                        based on section hierarhy
+                        based on section hierarchy
 
 ```
 
@@ -47,7 +47,7 @@ optional arguments:
 - user account with admin rights to target project (TestFLO project)
 
 ### JIRA project configuration
-Basicaly you need some special configuration of the project besides having TestFLO.
+Basically you need some special configuration of the project besides having TestFLO.
 Following extra configurations are required:
 1. Issue types:
 	* Test Case Template
@@ -225,7 +225,7 @@ Following extra configurations are required:
                         }
 		```
 3. All above mentioned fields __have to__ be added to _Create issue Screen_ and _Edit Issue Screen_, otherwise you will see error msg from JIRA.
-	* additionaly would be nice to have them in screens where you read the issue content (default screen or _View Issue Screen_) 
+	* additionally would be nice to have them in screens where you read the issue content (default screen or _View Issue Screen_) 
 	
 ## Data
 - input file from testReail 
@@ -273,7 +273,7 @@ The script(s) maps Test Rails issues to TestFLO issues in a following way:
 * _When_ - in case of _Test Case (Text)_ mapped to __Steps__ with "Given", "When", "Then" headers, _When_ filed
 
 # Known limitations
-- there is not much of error handling, so if anthing in Jira is not configured as expected the exception will be thrown
+- there is not much of error handling, so if anything in Jira is not configured as expected the exception will be thrown
 - tool only check duplicates of Epics and components, __does not__ check for duplicates of _Test Cases Template_ issues 
 	- so if you run it second time with the seme input params you will __have all issues duplicated__ 
 - Mapping of _Test Type_ and _Test Level_ is implemented as DCe-specific  
