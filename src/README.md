@@ -254,7 +254,7 @@ The script(s) maps Test Rails issues to TestFLO issues in a following way:
 
 # Known limitations
 - there is not much of error handling, so if anthing in Jira is not configured as expected the exception will be thrown
-- Mapping of _Test Type_ and _Test Level_ is 
+- Mapping of _Test Type_ and _Test Level_ is implemented as DCe-specific  
 - Original Test Rail's ID is added to issue summary with square braces []
 
 
