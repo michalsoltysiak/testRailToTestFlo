@@ -1,6 +1,7 @@
 # Introduction
 _testRailToTestFlo_ is a simple tool written in python (3.5+) which is created to help with importing test case definitions from _Test Rail_ to _JIRA TestFLO_.
-
+__Important__ please look to Mapping section as the tool is designed mainly to import DCe related test cases,
+you will need to branch to import other test cases
 # How to use
 In general the tool is command line tool.
 Type `python importer.py -h` for help. 
@@ -200,13 +201,64 @@ Following extra configurations are required:
                             ]
                         }
 		```
+	* __Automated__ - schema:
+		```
+		```
+3. All above mentioned fields __have to__ be added to _Create issue Screen_ and _Edit Issue Screen_, otherwise you will see error msg from JIRA.
+	* additionaly would be nice to have them in screens where you read the issue content (default screen or _View Issue Screen_) 
+	
 ## Data
-- input file from testReail
-### Supported test case types 
+- input file from testReail 
+	- example in the repo - `example.csv`
+### Supported test case types (Test Rail _Template_)
+- Test Case (Steps)
+- Test Case (Text)
+- Exploratory Session
 
+# Mapping
+The script(s) maps Test Rails issues to TestFLO issues in a following way:
+* _ID_ - added at the end of __Summary__ in square braces
+* _Title_ - mapped to __Summary__
+* _Created By_ - added as a part of __Description__
+* _Created On_ - added as a part of __Description__
+* _Estimate_ - added as a part of __Description__
+* ~~_Forecast_~~ - skipped
+* _Given_ 
+	* in case of _Test Case (Text)_ mapped to __Steps__ with "Given", "When", "Then" headers, _Given_ filed
+	* in case of _Test Case (Steps)_ mapped to __Pre-condition__ with "Given", "When", "Then" headers
+* _Goals_
+	* only exists in _Exploratory Session_, mapped to __Steps__  with "Goal", "Mission", "Free text" headers	 
+* _Mission_
+	* only exists in _Exploratory Session_, mapped to __Steps__  with "Goal", "Mission", "Free text" headers
+* _Priority_ - JIRA __Priority__
+* ~~_References_~~ - skipped
+* ~~_Section_~~ - skipped
+* ~~_Section Depth_~~ - skipped
+* _Section Description_ - when using _Epics_ (`-e`) used as __Description__ of issue type _Epic_
+* _Section Hierarchy_ (format looks like follows: section > subsection > subsubsection > ....)
+	* in case of _DCe_ test cases 
+		* first level section is mapped to __Test Type__ and __Test Level__
+		* second level is mapped to __Test Case Group__ and (with `-e`) to __Epic Name__ and __Summary__ of Epic issue (parent of test case template)
+		* if exists, third level is mapped to __Test Case Subgroup__ and (with `-e`) to __Epic Name__ and __Summary__ of Epic issue (parent of test case template)
+* ~~_Steps_~~ - skipped
+* _Steps (Expected Result)_ - mapped to _Expected result_ of __Steps__
+* _Steps (Step)_  - mapped to _Action_ of __Steps__
+* ~~_Suite_~~ - skipped
+* ~~_Suite ID_~~ - skipped
+* _Template_ - used to recognize way of mapping (Given/When/Then, Action/Expected result, Mission/Goal)
+* _Then_ - in case of _Test Case (Text)_ mapped to __Steps__ with "Given", "When", "Then" headers, _Then_ filed 
+* _Type_ - mapped to __Test Type__
+* ~~_Updated By_~~ - skipped
+* ~~_Updated On_~~ - skipped
+* _When_ - in case of _Test Case (Text)_ mapped to __Steps__ with "Given", "When", "Then" headers, _When_ filed
 
 # Known limitations
 - there is not much of error handling, so if anthing in Jira is not configured as expected the exception will be thrown
+- Mapping of _Test Type_ and _Test Level_ is 
+- Original Test Rail's ID is added to issue summary with square braces []
+
+
+
  
 
 
