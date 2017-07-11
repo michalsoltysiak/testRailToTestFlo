@@ -274,6 +274,8 @@ The script(s) maps Test Rails issues to TestFLO issues in a following way:
 
 # Known limitations
 - there is not much of error handling, so if anthing in Jira is not configured as expected the exception will be thrown
+- tool only check duplicates of Epics and components, __does not__ check for duplicates of _Test Cases Template_ issues 
+	- so if you run it second time with the seme input params you will __have all issues duplicated__ 
 - Mapping of _Test Type_ and _Test Level_ is implemented as DCe-specific  
 - Original Test Rail's ID is added to issue summary with square braces []
 
