@@ -203,6 +203,26 @@ Following extra configurations are required:
 		```
 	* __Automated__ - schema:
 		```
+		"customfield_11792": {
+                            "required": false,
+                            "schema": {
+                                "type": "option",
+                                "custom": "com.atlassian.jira.plugin.system.customfieldtypes:select",
+                            },
+                            "name": "Automated",
+                            "hasDefaultValue": true,
+                            "operations": [
+                                "set"
+                            ],
+                            "allowedValues": [
+                                {
+                                    "value": "Yes"
+                                },
+                                {
+                                    "value": "No"
+                                }
+                            ]
+                        }
 		```
 3. All above mentioned fields __have to__ be added to _Create issue Screen_ and _Edit Issue Screen_, otherwise you will see error msg from JIRA.
 	* additionaly would be nice to have them in screens where you read the issue content (default screen or _View Issue Screen_) 
