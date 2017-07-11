@@ -11,7 +11,7 @@ class SourceReader:
     def __init__(self, fileName):
         self.h = dict()
         try:
-            self.csvfile = open(fileName, 'tr')
+            self.csvfile = open(fileName, 'tr', encoding='utf-8-sig')
         except OSError as e:
             print( "File not found - ", fileName )
             raise e

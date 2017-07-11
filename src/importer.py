@@ -8,7 +8,7 @@ import sys, getopt
 
 
 import json
-import jiraDump
+
 
 from trToJiraMapper import JiraMapper
 from sourceReader import SourceReader
@@ -63,14 +63,14 @@ if __name__ == "__main__":
  
 if True:
     jiraTest = JIRA(parsedArgs['server'],basic_auth=(parsedArgs['user'], parsedArgs['password']))
-    
+
+    out = jiraTest.createmeta(projectKeys=parsedArgs['key'], issuetypeNames=['Test Case Template','Epic'], expand='projects.issuetypes.fields')
+#    p= out['projects'][0]['issuetypes'][0]['fields']
     
     
     m=JiraMapper(jiraTest, parsedArgs['key'])
     s = SourceReader(parsedArgs['inputFile'])
-    print( m.cfDict )  
-    
-    
+    #print( m.cfDict )  
     
     for csvLine in s:
         print( m.createIssue(csvLine, ['DCe'], 'imported'  ) )

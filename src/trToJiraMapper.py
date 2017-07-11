@@ -10,10 +10,11 @@ from testSteps import TestSteps
 from jira import JIRA
 from jira.exceptions import JIRAError
 import string
-from pyatspi import component
+import json
 from inspect import istraceback
 from shlex import shlex
-from lxml.html._diffcommand import description
+from jira.resources import IssueType
+
 
 
 
@@ -38,7 +39,7 @@ class JiraMapper:
             raise JIRAError('jiraObj is not instance of JIRA class')
         
         
-        self.cfDict = self.__customFiledsMapping()
+        
                      
         if isstring(projectKey):
             for p in self.jira.projects():
@@ -46,7 +47,8 @@ class JiraMapper:
                     self.projectKey = projectKey
                     break
             if not self.projectKey:
-                raise JIRAError(projectKey+ ' is not found or user has no access') 
+                raise JIRAError(projectKey+ ' is not found or user has no access')
+        self.cfDict = self.__customFiledsMapping() 
         self.components = list()
         for c in self.jira.project_components(self.projectKey):
             self.components.append( c.name )
@@ -57,13 +59,31 @@ class JiraMapper:
         for e in epics:
             self.epics.append({'key':e.key, 'summary':e.fields.summary, 'Epic Name':getattr(e.fields, self.cfDict['Epic Name'])})
         
-
+    def __labelCompatybile(self, s):
+        ''' returns sting in jira label-compatybile maneer - no spaces, only alphanum chars'''
+        if isstring(s):
+            s.strip()
+            s.strip()   #remove leading and ending spaces
+            s = '_'.join(s.split()) #replace spaces with _
+            s = re.sub('[^0-9a-zA-Z_]+', '_', s) # replace all non alphanum chars with _
+            return s 
+        else:
+            return 'None'
             
     def __customFiledsMapping(self):
+        
         cfMap = dict()
-        for f in self.jira.fields():        
-            if f['id'].find('customfield_') == 0: #id fields starts with 'customfield_'
-                cfMap[f['name']]=f['id']
+        meta = self.jira.createmeta( projectKeys = self.projectKey, issuetypeNames=['Test Case Template','Epic', 'Test Case', 'Test Plan'], expand='projects.issuetypes.fields')
+        issueTypes = meta['projects'][0]['issuetypes']
+        for issueType in issueTypes:
+            fields = dict()
+            fields = issueType['fields']
+            for key in fields.keys():
+                if key.find('customfield_') == 0:
+                    if key in cfMap.keys():
+                        print( 'Warning - %s is has multiple definitions in your jira' % key )
+                    cfMap[fields[key]['name']] = key
+                    
         return cfMap
         
     def __checkAndCreateComponents(self, issue, components):
@@ -106,7 +126,30 @@ class JiraMapper:
                         issue.update(fields={'labels': issue.fields.labels})
             else:
                 print( __name__ + 'labels must be string or list of strings')
-           
+    
+
+            
+    
+    def __checkAndUpdateGroups(self,issue,group, subgroup=None):
+        if isstring(group):
+            group = self.__labelCompatybile(group)
+
+            groups = getattr( issue.fields, self.cfDict['Test Case Group'] )
+            
+            if groups == None:
+                groups = list()
+            if not group.lower() in ( issueGroup.lower() for issueGroup in groups ) :                
+                issue.add_field_value( self.cfDict['Test Case Group'], group.lower() )
+        
+        if not subgroup == None and isstring(subgroup):
+            subgroup = self.__labelCompatybile(subgroup)
+            subgroups = getattr( issue.fields, self.cfDict['Test Case Subgroup'] )
+            
+            if subgroups == None:
+                subgroups = list()
+            if not subgroup.lower() in ( issueSubgroup.lower() for issueSubgroup in subgroups ) :                
+                issue.add_field_value( self.cfDict['Test Case Subgroup'], subgroup.lower() )           
+            
 #-------------------------------------------------------------------
     def __checkAndUpdateEpics(self, name, summary='', description=''):
         '''returns Epic's id so can be added as linked issue'''
@@ -152,7 +195,8 @@ class JiraMapper:
         
         
         
-        id = str(self.__getItem(trItem,'\ufeff"ID"'))
+        #id = str(self.__getItem(trItem,'\ufeff"ID"'))
+        id = str(self.__getItem(trItem,'ID'))
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
@@ -197,24 +241,22 @@ class JiraMapper:
             s=TestSteps('Goal', 'Mission','Free text')
             s.add(goal, mission, '')
             out[self.cfDict['Steps']] = s.asdict()
+            # commented out - does not work - Field 'customerfield_11792' cannot be set. It is not on the appropriate screen, or unknown."
             #out[self.cfDict['Automated']] = dict({'value':'No'})
             
         else:
             self.__addError('[' +id + '] - unknown test case template' )
         
-        description += '\n\n{quote}\n'
-        description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
-        description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
-        if self.__getItem(trItem,'Estimate'):
-            description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
-        description += '\n{quote}\n'
-
-        out['description'] = description
+        
+        
         
         testType = self.__getItem(trItem,'Type')
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ',sectionHierarchy )
         
+        for sh, sectionText in zip( shList[1:], list(['Section: ','Sub-section: ','Sub-sub-section: ']) ):
+            description += sectionText + sh + '\n'
+                
         '''DCE specific behavior'''
         out[self.cfDict['Test Type']] = list()
         if not testType == 'Other':
@@ -230,8 +272,16 @@ class JiraMapper:
             out[self.cfDict['Test Level']] = dict({'value':'Unit'})
         else:
             out[self.cfDict['Test Level']] = dict({'value':'None'})
+                
+        description += '\n\n{quote}\n'
+        description += 'Created by: ' + self.__getItem(trItem,'Created By') + '\n'
+        description += 'Created on: ' + self.__getItem(trItem,'Created On') + '\n'
+        if self.__getItem(trItem,'Estimate'):
+            description += 'Estimated for: ' + self.__getItem(trItem,'Estimate') + '\n'
+        description += '\n{quote}\n'
+
          
-        
+        out['description'] = description
         #print( 'type: ', testType, '\nsection: ', sectionHierarchy, '\nsplit: ',re.split(' > ',sectionHierarchy))
         '''TODO: 
             
@@ -250,6 +300,7 @@ class JiraMapper:
         print(epicName)
         #create issue in Jira
         epicKey = self.__checkAndUpdateEpics(name=epicName, summary= sectionHierarchy, description= self.__getItem(csvLineDict,'Section Description'))
+        
         issueDict[self.cfDict['Epic Link']]= epicKey
         
         issue = self.jira.create_issue(fields=issueDict)
@@ -257,12 +308,13 @@ class JiraMapper:
         #append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
+        if len(shList)>2:
+            subgroup = shList[2]
+        else:
+            subgroup = None
+            
+        self.__checkAndUpdateGroups( issue, shList[1], subgroup )
         
-        
-        
-                    
-        #issue.fields.labels.append(u'new_text')
-        #issue.update(fields={"labels": issue.fields.labels})        
         
         return issueDict
       
