@@ -1,9 +1,6 @@
 # Introduction
 _testRailToTestFlo_ is a simple tool written in python (3.5+) which is created to help with importing test case definitions from _Test Rail_ to _JIRA TestFLO_.
 
-__Important__ please look to Mapping section as the tool is designed mainly to import DCe related test cases,
-you will need to branch to import other test cases
-
 # How to use
 In general the tool is command line tool.
 
@@ -11,7 +8,7 @@ Type `python importer.py -h` for help.
 ```
 usage: importer.py [-h] -s server-url -k PROJECTKEY -u username -p password -i
                    input_file.csv [-l [label [label ...]]]
-                   [-c [component [component ...]]] [-e]
+                   [-c [component [component ...]]] [-e] [-t test_level]
 
 Transfers TestRail test cases from csv file to specified TestFLO project in
 Jira.
@@ -36,6 +33,10 @@ optional arguments:
                         imported issues
   -e                    add if you want to enable automatic creation of epics
                         based on section hierarchy
+  -t test_level, --level test_level
+                        Test level to be set for each of imported issues, one
+                        of: Unit, Integration, "Component Interface", System,
+                        "Operational Acceptance"
 
 ```
 
@@ -259,11 +260,10 @@ The script(s) maps Test Rails issues to TestFLO issues in a following way:
 * ~~_Section_~~ - skipped
 * ~~_Section Depth_~~ - skipped
 * _Section Description_ - when using _Epics_ (`-e`) used as __Description__ of issue type _Epic_
-* _Section Hierarchy_ (format looks like follows: section > subsection > subsubsection > ....)
-	* in case of _DCe_ test cases 
-		* first level section is mapped to __Test Type__ and __Test Level__
-		* second level is mapped to __Test Case Group__ and (with `-e`) to __Epic Name__ and __Summary__ of Epic issue (parent of test case template)
-		* if exists, third level is mapped to __Test Case Subgroup__ and (with `-e`) to __Epic Name__ and __Summary__ of Epic issue (parent of test case template)
+* _Section Hierarchy_ (format looks like follows: section > subsection > subsubsection > ....)	
+	* 1st level is mapped to __Test Case Group__ and (with `-e`) to __Epic Name__ and __Summary__ of Epic issue (parent of test case template)
+	* 2nd is mapped to __Test Case Subgroup__ and (with `-e`) to second part of __Epic Name__ (with / in between) and __Summary__ of Epic issue (parent of test case template)
+	* even if exist, third and further levels are skipped
 * ~~_Steps_~~ - skipped
 * _Steps (Expected Result)_ - mapped to _Expected result_ of __Steps__
 * _Steps (Step)_  - mapped to _Action_ of __Steps__
@@ -279,8 +279,7 @@ The script(s) maps Test Rails issues to TestFLO issues in a following way:
 # Known limitations
 - there is not much of error handling, so if anything in Jira is not configured as expected the exception will be thrown
 - tool only check duplicates of Epics and components, __does not__ check for duplicates of _Test Cases Template_ issues 
-	- so if you run it second time with the seme input params you will __have all issues duplicated__ 
-- Mapping of _Test Type_ and _Test Level_ is implemented as DCe-specific  
+	- so if you run it second time with the seme input params you will __have all issues duplicated__  
 - Original Test Rail's ID is added to issue summary with square braces []
 
 

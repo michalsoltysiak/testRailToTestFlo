@@ -249,23 +249,14 @@ class JiraMapper:
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ', sectionHierarchy)
         
-        for sh, sectionText in zip(shList[1:], list(['Section: ', 'Sub-section: ', 'Sub-sub-section: '])):
+        for sh, sectionText in zip(shList, list(['Section: ', 'Sub-section: ', 'Sub-sub-section: ', 'Sub-sub-sub-section: '])):
             description += sectionText + sh + '\n'
                 
         '''DCE specific behavior'''
         out[self.cfDict['Test Type']] = list()
-        if not testType == 'Other':            
-            out[self.cfDict['Test Type']].append({'value':self.testTypes[testType]})
-        else:
-            if shList[0] == 'Acceptance Tests':
-                out[self.cfDict['Test Type']].append({'value':self.testTypes['Acceptance']})
-                         
-        if shList[0] == 'Acceptance Tests':
-            out[self.cfDict['Test Level']] = dict({'value':'Component Interface'})
-        elif shList[0] == 'Unit Tests':
-            out[self.cfDict['Test Level']] = dict({'value':'Unit'})
-        else:
-            out[self.cfDict['Test Level']] = dict({'value':'None'})
+        out[self.cfDict['Test Type']].append({'value':self.testTypes[testType]})
+        
+        
                 
         description += '\n\n{quote}\n'
         description += 'Created by: ' + self.__getItem(trItem, 'Created By') + '\n'
@@ -279,12 +270,20 @@ class JiraMapper:
         
         return out
     
-    def createIssue(self, csvLineDict, components=None, labels=None, createEpics=False):
-        
+    def createIssue(self, csvLineDict, components=None, labels=None, testLevel=None, createEpics=False):
+        ''' 
+        creates issue (Test Case Template) based on csvLine (from test rail export)
+        returns dictrionary containing full issue definition
+        :param csvLineDict - SoruceReader object 
+        :param components - list of components to be assigned to created issue
+        :param labels - list of labels to be assigned to created issue
+        :param testLevel - value of Jira Test Level fild; allowed values are  [ 'Unit', 'Integration', 'Component Interface', 'System', 'Operational Acceptance']
+        :param createEpics - enables/disables creation of Epics under which Test Case Templates are added; Epic names are detected automaticaly based on "Section Hierarchy"
+        '''
         issueDict = self.__getIssueFields(csvLineDict)
         sectionHierarchy = self.__getItem(csvLineDict, 'Section Hierarchy')
         shList = re.split(' > ', sectionHierarchy)  # list of section headers
-        epicName = '_'.join(shList[1:])
+        epicName = '/'.join(shList)
         
         if createEpics:
             print('Using epic: %s' % epicName)
@@ -292,17 +291,22 @@ class JiraMapper:
             epicKey = self.__checkAndUpdateEpics(name=epicName, summary=sectionHierarchy, description=self.__getItem(csvLineDict, 'Section Description'))
         
             issueDict[self.cfDict['Epic Link']] = epicKey
-        
+            
+        if testLevel and testLevel in self.testLevels[1:]:
+            issueDict[self.cfDict['Test Level']] = dict({'value':testLevel})
+        else:
+            pass
+            
         issue = self.jira.create_issue(fields=issueDict)        
         # append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
         self.__checkAndCreateComponents(issue, components)
-        if len(shList) > 2:
-            subgroup = shList[2]
+        if len(shList) > 1:
+            subgroup = shList[1]
         else:
             subgroup = None
             
-        self.__checkAndUpdateGroups(issue, shList[1], subgroup)
+        self.__checkAndUpdateGroups(issue, shList[0], subgroup)
         
         
         return issueDict

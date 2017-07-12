@@ -45,6 +45,8 @@ def parseCommandLine(argv):
     parser.add_argument('-l', '--labels', metavar='label', nargs='*', required=False, type=str, help='space delimited list of label to be assigned to imported issues')
     parser.add_argument('-c', '--components', metavar='component', nargs='*', required=False, type=str, help='space delimited list of components to be assigned to imported issues')
     parser.add_argument('-e', action='store_true', help='add if you want to enable automatic creation of epics based on section hierarchy')
+    parser.add_argument('-t', '--level', metavar='test_level', nargs=1, required=False, type=str,
+                        help='Test level to be set for each of imported issues, one of: Unit, Integration, "Component Interface", System, "Operational Acceptance"')
     args = vars(parser.parse_args())
     dictArgs['user'] = args['user'][0]
     dictArgs['password'] = args['pass'][0]
@@ -54,6 +56,10 @@ def parseCommandLine(argv):
     dictArgs['epics'] = args['e']
     dictArgs['labels'] = args['labels']
     dictArgs['components'] = args['components']
+    if args['level'] and type(args['level']) is list and len(args['level'])>0:
+        dictArgs['level'] = args['level'][0]
+    else:
+        dictArgs['level'] = None
     return dictArgs
 if __name__ == "__main__":
     parsedArgs = parseCommandLine(sys.argv[1:])
@@ -70,5 +76,10 @@ if True:
     i = 0
     for csvLine in s:
         i = i + 1
-        print('%5d - adding issue: %s' % (i, m.createIssue(csvLine, parsedArgs['components'], parsedArgs['labels'], parsedArgs['epics'])))
+        print('%5d - adding issue: %s' % 
+              (i,
+               m.createIssue(csvLine, components=parsedArgs['components'], labels=parsedArgs['labels'], createEpics=parsedArgs['epics'], testLevel='Integration'
+                             )
+               )
+              )
 
