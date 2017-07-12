@@ -195,7 +195,7 @@ class JiraMapper:
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
-        out['summary'] = self.__getItem(trItem, 'Title') + '[' + itemId + ']'           
+        out['summary'] = self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
             
         try:
             out['priority'] = {'name':JiraMapper.prioMapper[self.__getItem(trItem, 'Priority')]}
