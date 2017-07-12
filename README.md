@@ -1,9 +1,12 @@
 # Introduction
 _testRailToTestFlo_ is a simple tool written in python (3.5+) which is created to help with importing test case definitions from _Test Rail_ to _JIRA TestFLO_.
+
 __Important__ please look to Mapping section as the tool is designed mainly to import DCe related test cases,
 you will need to branch to import other test cases
+
 # How to use
 In general the tool is command line tool.
+
 Type `python importer.py -h` for help. 
 ```
 usage: importer.py [-h] -s server-url -k PROJECTKEY -u username -p password -i
@@ -48,6 +51,7 @@ optional arguments:
 
 ### JIRA project configuration
 Basically you need some special configuration of the project besides having TestFLO.
+
 Following extra configurations are required:
 1. Issue types:
 	* Test Case Template

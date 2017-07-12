@@ -67,7 +67,8 @@ if True:
     jira = JIRA(parsedArgs['server'], basic_auth=(parsedArgs['user'], parsedArgs['password']))
     m = JiraMapper(jira, parsedArgs['key'])
     s = SourceReader(parsedArgs['inputFile'])
-    
+    i = 0
     for csvLine in s:
-        print('adding issue: %s' % m.createIssue(csvLine, parsedArgs['components'], parsedArgs['labels'], parsedArgs['epics']))
+        i = i + 1
+        print('%5d - adding issue: %s' % (i, m.createIssue(csvLine, parsedArgs['components'], parsedArgs['labels'], parsedArgs['epics'])))
 
