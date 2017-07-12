@@ -37,9 +37,6 @@ class JiraMapper:
             self.jira = jiraObj
         else:
             raise JIRAError('jiraObj is not instance of JIRA class')
-        
-        
-        
                      
         if isstring(projectKey):
             for p in self.jira.projects():
@@ -198,7 +195,7 @@ class JiraMapper:
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
-        out['summary'] = self.__getItem(trItem, 'Title') + '[' + itemId + ']'           
+        out['summary'] = self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
             
         try:
             out['priority'] = {'name':JiraMapper.prioMapper[self.__getItem(trItem, 'Priority')]}
@@ -245,18 +242,23 @@ class JiraMapper:
         else:
             self.__addError('[' + itemId + '] - unknown test case template')
         
-        testType = self.__getItem(trItem, 'Type')
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ', sectionHierarchy)
         
         for sh, sectionText in zip(shList, list(['Section: ', 'Sub-section: ', 'Sub-sub-section: ', 'Sub-sub-sub-section: '])):
             description += sectionText + sh + '\n'
                 
-        '''DCE specific behavior'''
-        out[self.cfDict['Test Type']] = list()
-        out[self.cfDict['Test Type']].append({'value':self.testTypes[testType]})
-        
-        
+        # test type
+        testType = self.__getItem(trItem, 'Type')        
+        if testType in self.testTypes.keys():
+            testType = self.testTypes[testType] #translate to jira test types
+            if not testType == 'None':  #you can not set type None
+                out[self.cfDict['Test Type']] = list()
+                out[self.cfDict['Test Type']].append({'value':testType})
+            else:
+                self.__addError( '[%s] - did not mapped test type, type was \'Other\'' % itemId )
+        else:
+            self.__addError( '[%s] - unknown test type' % itemId )
                 
         description += '\n\n{quote}\n'
         description += 'Created by: ' + self.__getItem(trItem, 'Created By') + '\n'
@@ -283,7 +285,7 @@ class JiraMapper:
         issueDict = self.__getIssueFields(csvLineDict)
         sectionHierarchy = self.__getItem(csvLineDict, 'Section Hierarchy')
         shList = re.split(' > ', sectionHierarchy)  # list of section headers
-        epicName = '/'.join(shList)
+        epicName = ' / '.join(shList)
         
         if createEpics:
             print('Using epic: %s' % epicName)
@@ -309,5 +311,7 @@ class JiraMapper:
         self.__checkAndUpdateGroups(issue, shList[0], subgroup)
         
         
-        return issueDict
-      
+        return ( issue.key, issue.fields.summary)
+    #----------------------------------------------------------------
+    def getErrors(self):
+        return self.errLog
