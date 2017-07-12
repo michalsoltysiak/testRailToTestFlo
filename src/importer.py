@@ -76,10 +76,7 @@ if True:
     i = 0
     for csvLine in s:
         i = i + 1
-        print('%5d - adding issue: %s' % 
-              (i,
-               m.createIssue(csvLine, components=parsedArgs['components'], labels=parsedArgs['labels'], createEpics=parsedArgs['epics'], testLevel='Integration'
-                             )
-               )
-              )
+        print('created issue: %s - %s' % m.createIssue(csvLine, components=parsedArgs['components'], labels=parsedArgs['labels'], createEpics=parsedArgs['epics'], testLevel='Integration' ))
+    print( '\nError log: \n%s' % m.getErrors() )
+    
 
