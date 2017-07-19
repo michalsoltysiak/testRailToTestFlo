@@ -190,12 +190,15 @@ class JiraMapper:
         out = dict()
         description = ''
         
+        sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
+        shList = re.split(' > ', sectionHierarchy)  # list of section headers
+        
         # itemId = str(self.__getItem(trItem,'\ufeff"ID"'))
         itemId = str(self.__getItem(trItem, 'ID'))
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
-        out['summary'] = self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
+        out['summary'] = shList[2] + ' / ' + self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
             
         try:
             out['priority'] = {'name':JiraMapper.prioMapper[self.__getItem(trItem, 'Priority')]}
@@ -217,10 +220,10 @@ class JiraMapper:
         if template == 'Test Case (Steps)':            
             out[self.cfDict['Pre-conditions']] = given            
             s = TestSteps()
-            splitExp = '.*\d\.\s+' # each steps starts with its number
+            splitExp = '.*\d\.\s+'  # each steps starts with its number
             for k, l in zip(re.split(splitExp, steps_step), re.split(splitExp, steps_expected)):
                 if k or l:
-                    s.add(k, '', l) #Action, Input, Expecte result
+                    s.add(k, '', l)  # Action, Input, Expecte result
             out[self.cfDict['Steps']] = s.asdict()
             # out[self.cfDict['Automated']] = dict({'value':'Yes'})
                 
@@ -242,23 +245,21 @@ class JiraMapper:
         else:
             self.__addError('[' + itemId + '] - unknown test case template')
         
-        sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
-        shList = re.split(' > ', sectionHierarchy)
         
-        for sh, sectionText in zip(shList, list(['Section: ', 'Sub-section: ', 'Sub-sub-section: ', 'Sub-sub-sub-section: '])):
-            description += sectionText + sh + '\n'
+        # for sh, sectionText in zip(shList, list(['Section: ', 'Sub-section: ', 'Sub-sub-section: ', 'Sub-sub-sub-section: '])):
+        #    description += sectionText + sh + '\n'
                 
         # test type
         testType = self.__getItem(trItem, 'Type')        
         if testType in self.testTypes.keys():
-            testType = self.testTypes[testType] #translate to jira test types
-            if not testType == 'None':  #you can not set type None
+            testType = self.testTypes[testType]  # translate to jira test types
+            if not testType == 'None':  # you can not set type None
                 out[self.cfDict['Test Type']] = list()
                 out[self.cfDict['Test Type']].append({'value':testType})
             else:
-                self.__addError( '[%s] - did not mapped test type, type was \'Other\'' % itemId )
+                self.__addError('[%s] - did not mapped test type, type was \'Other\'' % itemId)
         else:
-            self.__addError( '[%s] - unknown test type' % itemId )
+            self.__addError('[%s] - unknown test type' % itemId)
                 
         description += '\n\n{quote}\n'
         description += 'Created by: ' + self.__getItem(trItem, 'Created By') + '\n'
@@ -302,16 +303,17 @@ class JiraMapper:
         issue = self.jira.create_issue(fields=issueDict)        
         # append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
-        self.__checkAndCreateComponents(issue, components)
-        if len(shList) > 1:
-            subgroup = shList[1]
-        else:
-            subgroup = None
-            
-        self.__checkAndUpdateGroups(issue, shList[0], subgroup)
+        self.__checkAndCreateComponents(issue, shList[1])
+        if False:
+            if len(shList) > 1:
+                subgroup = shList[1]
+            else:
+                subgroup = None
+                
+            self.__checkAndUpdateGroups(issue, shList[0], subgroup)
         
         
-        return ( issue.key, issue.fields.summary)
+        return (issue.key, issue.fields.summary)
     #----------------------------------------------------------------
     def getErrors(self):
         return self.errLog
