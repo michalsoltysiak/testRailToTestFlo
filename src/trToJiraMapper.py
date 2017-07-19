@@ -258,6 +258,8 @@ class JiraMapper:
                 out[self.cfDict['Test Type']].append({'value':testType})
             else:
                 self.__addError('[%s] - did not mapped test type, type was \'Other\'' % itemId)
+        elif testType == 'Automated':
+            out[self.cfDict['Automated']] = dict({'value':"Yes"})
         else:
             self.__addError('[%s] - unknown test type' % itemId)
                 
