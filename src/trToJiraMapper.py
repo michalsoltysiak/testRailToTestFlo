@@ -198,7 +198,7 @@ class JiraMapper:
         out['project'] = {'key': self.projectKey}
         out['issuetype'] = {'name':'Test Case Template'}
         
-        out['summary'] = shList[2] + ' / ' + self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
+        out['summary'] =  self.__getItem(trItem, 'Title') + ' [' + itemId + ']'           
             
         try:
             out['priority'] = {'name':JiraMapper.prioMapper[self.__getItem(trItem, 'Priority')]}
@@ -305,14 +305,14 @@ class JiraMapper:
         issue = self.jira.create_issue(fields=issueDict)        
         # append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
-        self.__checkAndCreateComponents(issue, shList[1])
+        self.__checkAndCreateComponents(issue, components)
         if False:
             if len(shList) > 1:
                 subgroup = shList[1]
             else:
                 subgroup = None
                 
-            self.__checkAndUpdateGroups(issue, shList[0], subgroup)
+            self.__checkAndUpdateGroups(issue, shList[1])
         
         
         return (issue.key, issue.fields.summary)
