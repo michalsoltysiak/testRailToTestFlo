@@ -190,6 +190,8 @@ class JiraMapper:
         out = dict()
         description = ''
         
+        sectionDescription = self.__getItem(trItem, 'Section Description')
+        
         sectionHierarchy = self.__getItem(trItem, 'Section Hierarchy')
         shList = re.split(' > ', sectionHierarchy)  # list of section headers
         
@@ -262,7 +264,8 @@ class JiraMapper:
             out[self.cfDict['Automated']] = dict({'value':"Yes"})
         else:
             self.__addError('[%s] - unknown test type' % itemId)
-                
+        
+        description += sectionDescription        
         description += '\n\n{quote}\n'
         description += 'Created by: ' + self.__getItem(trItem, 'Created By') + '\n'
         description += 'Created on: ' + self.__getItem(trItem, 'Created On') + '\n'
@@ -305,7 +308,7 @@ class JiraMapper:
         issue = self.jira.create_issue(fields=issueDict)        
         # append (to already created component) default labels
         self.__checkAndUpdateLabels(issue, labels)
-        self.__checkAndCreateComponents(issue, components)
+        self.__checkAndCreateComponents(issue, shList[1])
         if False:
             if len(shList) > 1:
                 subgroup = shList[1]
