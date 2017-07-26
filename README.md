@@ -6,7 +6,7 @@ In general the tool is command line tool.
 
 Type `python importer.py -h` for help. 
 ```
-usage: importer.py [-h] -s server-url -k PROJECTKEY -u username -p password -i
+usage: importer.py [-h] -s server-url -k PROJECTKEY -u username -i
                    input_file.csv [-l [label [label ...]]]
                    [-c [component [component ...]]] [-e] [-t test_level]
 
@@ -21,8 +21,6 @@ optional arguments:
                         project KEY, not name, not id, the KEY
   -u username, --user username
                         your jira user name
-  -p password, --pass password
-                        your jira passowrd
   -i input_file.csv, --ifile input_file.csv
                         path to source file (csv)
   -l [label [label ...]], --labels [label [label ...]]
